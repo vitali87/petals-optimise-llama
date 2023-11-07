@@ -66,9 +66,11 @@ class TransformerBackend(ModuleBackend):
         self.dtype_bytes = get_size_in_bytes(self.dtype)
         self.shard_num_heads = []
         for shard in self.module.module_shards:
-            for submodule in shard.modules():
-                if isinstance(submodule, config.attn_class):
-                    self.shard_num_heads.append(submodule.num_heads)
+            self.shard_num_heads.extend(
+                submodule.num_heads
+                for submodule in shard.modules()
+                if isinstance(submodule, config.attn_class)
+            )
         assert len(self.shard_num_heads) == len(self.module.devices)
         assert sum(self.shard_num_heads) == config.num_attention_heads
 
@@ -157,7 +159,7 @@ class TransformerBackend(ModuleBackend):
 
     def _select_layer_past(self, cache_tensors: Sequence[torch.Tensor], prefix_length: int) -> Sequence[torch.Tensor]:
         """Extract first {prefix_length} tokens and reshape them such that they can be used as layer_past"""
-        key_cache, value_cache = list(cache_tensors[0::2]), list(cache_tensors[1::2])
+        key_cache, value_cache = list(cache_tensors[::2]), list(cache_tensors[1::2])
         for i in range(len(key_cache)):
             key_cache[i] = key_cache[i].flatten(0, 1)[:, :, :prefix_length]
             # shape: [batch * num_kv_heads, head_dim, kv_length]
@@ -171,7 +173,7 @@ class TransformerBackend(ModuleBackend):
     ):
         """Writes new key/value tensors back into cache, works in-place"""
         _batch_size_times_num_kv_heads, head_dim, new_length = new_kvs[0].shape
-        for cache_key, new_key in zip(cache_tensors[0::2], new_kvs[0::2]):
+        for cache_key, new_key in zip(cache_tensors[::2], new_kvs[::2]):
             new_key = new_key.view(*cache_key.shape[:3], new_length)
             cache_key[:, :, :, prefix_length:new_length] = new_key[:, :, :, prefix_length:new_length]
         for cache_value, new_value in zip(cache_tensors[1::2], new_kvs[1::2]):
@@ -198,13 +200,15 @@ class TransformerBackend(ModuleBackend):
 
 def merge_inference_pools_inplace(backends: Dict[ExpertUID, TransformerBackend]):
     """Replace each backend's rpc_inference pools with a combined pool runs multiple blocks in one call"""
-    assert len(backends) != 0 and all(isinstance(b, TransformerBackend) for b in backends.values())
+    assert backends and all(
+        isinstance(b, TransformerBackend) for b in backends.values()
+    )
     first_pool = next(iter(backends.values())).inference_pool
     merged_pool = PrioritizedTaskPool(
         _MergedInferenceStep(backends),
         max_batch_size=first_pool.max_batch_size,
         device=first_pool.device,
-        name=f"merged_inference",
+        name="merged_inference",
     )
     for backend in backends.values():
         assert not backend.inference_pool.is_alive()

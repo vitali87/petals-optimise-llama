@@ -17,8 +17,9 @@ def _make_tensor_descriptor(num_bytes: int, dtype: Optional[torch.dtype] = None)
     if dtype is None:
         dtype = random.choice((torch.int64, torch.int8, torch.uint8, torch.float32, torch.bfloat16, torch.bool))
     elem_size_bytes = get_size_in_bytes(dtype)
-    descr = TensorDescriptor.from_tensor(torch.empty((num_bytes // elem_size_bytes,), dtype=dtype))
-    return descr
+    return TensorDescriptor.from_tensor(
+        torch.empty((num_bytes // elem_size_bytes,), dtype=dtype)
+    )
 
 
 @pytest.mark.asyncio

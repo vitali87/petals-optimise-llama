@@ -53,12 +53,10 @@ class LMHead(nn.Module):
             and self.weight.device.type == "cpu"
             and self.use_chunked_forward
         ):
-            lm_logits = self.chunked_forward(hidden_states)
-        else:
-            # Switch dtype in case word_embeddings are fp16/bf16
-            hidden_states = hidden_states.to(self.weight.dtype)
-            lm_logits = F.linear(hidden_states, self.weight)
-        return lm_logits
+            return self.chunked_forward(hidden_states)
+        # Switch dtype in case word_embeddings are fp16/bf16
+        hidden_states = hidden_states.to(self.weight.dtype)
+        return F.linear(hidden_states, self.weight)
 
     def chunked_forward(self, hidden_states):
         """Splits word embeddings on chunks and iteratively casts them into fp32 to perform matmul more efficiently on CPU.

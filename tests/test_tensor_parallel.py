@@ -21,10 +21,7 @@ def test_tp_block(devices, custom_config):
     block_index = random.randint(0, 10)
     block = load_pretrained_block(MODEL_NAME, block_index=block_index, torch_dtype=torch.float32).to(devices[0])
 
-    tp_config = None
-    if custom_config:
-        tp_config = get_bloom_config(model_config, devices)
-
+    tp_config = get_bloom_config(model_config, devices) if custom_config else None
     batch_size = 2
     prefix_length = 5
 

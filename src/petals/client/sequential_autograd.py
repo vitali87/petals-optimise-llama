@@ -133,7 +133,7 @@ async def sequential_backward(
     prompts = prompts.cpu()
 
     grad_prompts_reversed = []
-    while len(forward_sequences) > 0 and len(intermediate_inputs) > 0:
+    while forward_sequences and intermediate_inputs:
         inputs = intermediate_inputs.pop()
         span = forward_sequences.pop()
         for attempt_no in itertools.count():

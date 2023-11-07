@@ -51,11 +51,10 @@ class RemoteSequential(nn.Module):
 
     def forward(self, inputs: torch.Tensor, prompts: Optional[torch.Tensor] = None, **kwargs) -> torch.Tensor:
         assert inputs.ndim == 3, "inputs must be a tensor of shape [batch_size, seq_length, hidden_size]"
-        if self.active_session is None:
-            assert all(v is None for v in kwargs.values()), f"Extra kwargs are not supported in forward: {kwargs}"
-            return _RemoteSequentialAutogradFunction.apply(inputs, prompts, self.sequence_manager)
-        else:
+        if self.active_session is not None:
             return self.active_session.step(inputs, prompts, **kwargs)
+        assert all(v is None for v in kwargs.values()), f"Extra kwargs are not supported in forward: {kwargs}"
+        return _RemoteSequentialAutogradFunction.apply(inputs, prompts, self.sequence_manager)
 
     @property
     def active_session(self) -> Optional[InferenceSession]:

@@ -35,7 +35,11 @@ def get_block_size(
         block = config.block_class(config)
         n_params = sum(param.numel() for param in block.parameters())
 
-    if location == "memory":
+    if location == "disk":
+        dtype = resolve_block_dtype(config, "auto")
+        bytes_per_value = get_size_in_bytes(dtype)
+
+    elif location == "memory":
         if quant_type == QuantType.NONE:
             dtype = resolve_block_dtype(config, dtype)
             bytes_per_value = get_size_in_bytes(dtype)
@@ -45,8 +49,4 @@ def get_block_size(
             bytes_per_value = 4.25 / 8  # Bitness of NF4 with this config (measured empirically)
         else:
             raise ValueError(f"Unsupported quant_type={quant_type}")
-    elif location == "disk":
-        dtype = resolve_block_dtype(config, "auto")
-        bytes_per_value = get_size_in_bytes(dtype)
-
     return round(n_params * bytes_per_value * (1 + eps))

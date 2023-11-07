@@ -50,8 +50,9 @@ def test_chained_inference_exact_match(atol_inference=1e-4):
 
     outputs_inference = []
     with remote_blocks.inference_session(max_length=inputs.shape[1]) as sess:
-        for i in range(inputs.shape[1]):
-            outputs_inference.append(sess.step(inputs[:, i : i + 1, :]))
+        outputs_inference.extend(
+            sess.step(inputs[:, i : i + 1, :]) for i in range(inputs.shape[1])
+        )
     outputs_inference = torch.cat(outputs_inference, dim=1)
 
     ref_blocks = [

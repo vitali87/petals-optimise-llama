@@ -63,9 +63,16 @@ def test_full_model_exact_match(tokenizer, model, ref_model, use_peft, pass_empt
                     recurrent_outputs.append(sess.step(embs[:, t : t + 1, :]))
 
                 if t == 2 and pass_empty_tensors:
-                    recurrent_outputs.append(sess.step(torch.empty(1, 0, model.config.hidden_size)))
-                    recurrent_outputs.append(sess.step(torch.empty(1, 0, model.config.hidden_size)))
-
+                    recurrent_outputs.extend(
+                        (
+                            sess.step(
+                                torch.empty(1, 0, model.config.hidden_size)
+                            ),
+                            sess.step(
+                                torch.empty(1, 0, model.config.hidden_size)
+                            ),
+                        )
+                    )
         recurrent_outputs = torch.cat(recurrent_outputs, dim=1)
         recurrent_outputs = model.transformer.ln_f(recurrent_outputs)
         recurrent_outputs = model.lm_head(recurrent_outputs)
@@ -148,7 +155,9 @@ def test_beam_search_generation(tokenizer, model, ref_model, max_new_tokens=4, n
     options = dict(max_new_tokens=max_new_tokens, num_beams=num_beams, do_sample=False)
     outputs = make_generate_calls(model, inputs, **options)
     ref_outputs = ref_model.generate(inputs, **options)
-    assert torch.allclose(outputs, ref_outputs), f"Beam search results are not identical to HF"
+    assert torch.allclose(
+        outputs, ref_outputs
+    ), "Beam search results are not identical to HF"
 
 
 @pytest.mark.forked
@@ -158,7 +167,7 @@ def test_input_ids(tokenizer, model, ref_model, max_new_tokens=4):
 
     outputs = model.generate(**inputs, max_new_tokens=max_new_tokens)
     ref_outputs = ref_model.generate(**inputs, max_new_tokens=max_new_tokens)
-    assert torch.allclose(outputs, ref_outputs), f"Outputs are not identical to HF"
+    assert torch.allclose(outputs, ref_outputs), "Outputs are not identical to HF"
 
     with model.inference_session(max_length=inputs["input_ids"].shape[1] + max_new_tokens):
         outputs = torch.cat(
@@ -168,4 +177,6 @@ def test_input_ids(tokenizer, model, ref_model, max_new_tokens=4):
             ],
             dim=1,
         )
-    assert torch.allclose(outputs, ref_outputs), f"Multi-call outputs are not identical to HF"
+    assert torch.allclose(
+        outputs, ref_outputs
+    ), "Multi-call outputs are not identical to HF"

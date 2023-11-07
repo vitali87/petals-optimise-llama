@@ -27,9 +27,10 @@ def test_remote_block_exact_match(atol_forward=1e-4, atol_inference=1e-3):
             outputs_inference.append(sess.step(inputs[:, : MAX_SHORT_INFERENCE_TOKENS + 1, :]))
 
             # Test short inference (merged inference pools)
-            for i in range(MAX_SHORT_INFERENCE_TOKENS + 1, inputs.shape[1]):
-                outputs_inference.append(sess.step(inputs[:, i : i + 1, :]))
-
+            outputs_inference.extend(
+                sess.step(inputs[:, i : i + 1, :])
+                for i in range(MAX_SHORT_INFERENCE_TOKENS + 1, inputs.shape[1])
+            )
             # test that max length is respected
             with pytest.raises(ValueError, match=r"Maximum length exceeded") as exc_info:
                 sess.step(inputs[:, -1:, :])

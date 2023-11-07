@@ -181,12 +181,11 @@ class RemoteSequenceManager:
             return []
 
         with self.lock_changes:
-            missing_blocks = [
+            if missing_blocks := [
                 block_idx
                 for block_idx in range(start_index, end_index)
                 if not self.state.sequence_info.spans_containing_block[block_idx]
-            ]
-            if missing_blocks:
+            ]:
                 raise MissingBlocksError(missing_blocks)
             server_infos = {
                 span.peer_id: span.server_info
@@ -208,11 +207,7 @@ class RemoteSequenceManager:
             else:
                 span_sequence[-1].end = block_idx
 
-        # Remove empty spans that can appear if we don't force to go to the end of each server and network delay
-        # don't follow triangle inequality (delay(A, B) + delay(B, C) < delay(A, C)) due to measurement errors
-        span_sequence = [span for span in span_sequence if span.length > 0]
-
-        return span_sequence
+        return [span for span in span_sequence if span.length > 0]
 
     def _build_inference_graph(
         self,
@@ -224,12 +219,11 @@ class RemoteSequenceManager:
         default_inference_rps: float = 300,  # If inference RPS unknown
         alloc_delay: float = 10,  # If not enough cache left, we penalize the edge
     ) -> dijkstar.Graph:
-        missing_blocks = [
+        if missing_blocks := [
             block_idx
             for block_idx in range(start_index, end_index)
             if not self.state.sequence_info.spans_containing_block[block_idx]
-        ]
-        if missing_blocks:
+        ]:
             raise MissingBlocksError(missing_blocks)
 
         client_server_rtts = self.ping_aggregator.to_dict()
@@ -284,9 +278,7 @@ class RemoteSequenceManager:
         default_delay: float = 0.15,  # If network delay unknown
         max_delay: float = 5,  # If unreachable, we don't want to discard the edge completely
     ) -> float:
-        if rtt is None:
-            return default_delay
-        return min(rtt / 2, max_delay)
+        return default_delay if rtt is None else min(rtt / 2, max_delay)
 
     @staticmethod
     def _has_cache_for(span: RemoteSpanInfo, cache_tokens_needed: Optional[int] = None) -> bool:
