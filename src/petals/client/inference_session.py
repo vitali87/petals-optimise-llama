@@ -104,11 +104,7 @@ class _ServerInferenceSession:
             f"position={self._position} n_input_tokens={n_input_tokens}"
         )
 
-        if not self.stepped:
-            inputs = self.history  # Pass full inputs including prefix
-        else:
-            inputs = inputs[:, -n_input_tokens:]  # No need to pass prefix further
-
+        inputs = self.history if not self.stepped else inputs[:, -n_input_tokens:]
         # serialize inputs and put them into the queue
         input_tensors, args_structure = pack_args_kwargs(inputs, prompts, hypo_ids)
 
@@ -116,8 +112,7 @@ class _ServerInferenceSession:
         if not self.stepped:
             request_metadata.update(self.session_metadata)
         elif self.config.use_server_to_server:
-            next_servers = self._collect_next_servers()
-            if next_servers:
+            if next_servers := self._collect_next_servers():
                 request_metadata["next_servers"] = next_servers
 
         request_metadata["args_structure"] = args_structure
@@ -325,8 +320,7 @@ class InferenceSession:
 
         self._position += n_input_tokens
         outputs = inputs[:, -n_input_tokens:]
-        outputs = outputs.to(device=inputs_device, dtype=inputs_dtype)
-        return outputs
+        return outputs.to(device=inputs_device, dtype=inputs_dtype)
 
     def _update_sequence(self, server_idx: int, block_idx: int, attempt_no: int) -> int:
         # If there is a failed server session, this code closes it

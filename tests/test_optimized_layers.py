@@ -90,8 +90,7 @@ class UnoptimizedWrappedFalconBlock(FalconDecoderLayer):
 
         state = state.view(batch_size, self.config.num_kv_heads, self.config.num_key_value_groups, seq_len, head_dim)
         state = state[:, :, 0]
-        state = state.view(batch_size * self.config.num_kv_heads, seq_len, head_dim)
-        return state
+        return state.view(batch_size * self.config.num_kv_heads, seq_len, head_dim)
 
 
 @pytest.mark.skipif("falcon" not in MODEL_NAME, reason="This test is applicable only to Falcon models")

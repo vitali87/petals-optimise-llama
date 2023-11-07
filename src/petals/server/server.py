@@ -172,10 +172,10 @@ class Server:
         torch_dtype = resolve_block_dtype(self.block_config, DTYPE_MAP[torch_dtype])
         if device.type == "cpu" and torch_dtype == torch.float16:
             raise ValueError(
-                f"Type float16 is not supported on CPU. Please use --torch_dtype float32 or --torch_dtype bfloat16"
+                "Type float16 is not supported on CPU. Please use --torch_dtype float32 or --torch_dtype bfloat16"
             )
         if device.type == "mps" and torch_dtype == torch.bfloat16:
-            logger.warning(f"Type bfloat16 is not supported on MPS, using float16 instead")
+            logger.warning("Type bfloat16 is not supported on MPS, using float16 instead")
             torch_dtype = torch.float16
         self.torch_dtype = torch_dtype
 
@@ -263,7 +263,9 @@ class Server:
         )
         self.model_info = ModelInfo(num_blocks=self.block_config.num_hidden_layers)
         if not os.path.isdir(converted_model_name_or_path):
-            self.model_info.repository = "https://huggingface.co/" + converted_model_name_or_path
+            self.model_info.repository = (
+                f"https://huggingface.co/{converted_model_name_or_path}"
+            )
 
         self.balance_quality = balance_quality
         self.mean_balance_check_period = mean_balance_check_period
@@ -656,12 +658,12 @@ class ModuleContainer(threading.Thread):
         for handler in self.conn_handlers:
             handler.shutdown()
 
-        logger.debug(f"Shutting down pools")
+        logger.debug("Shutting down pools")
         for pool in self.runtime.pools:
             if pool.is_alive():
                 pool.shutdown()
 
-        logger.debug(f"Shutting down runtime")
+        logger.debug("Shutting down runtime")
         self.runtime.shutdown()
 
         logger.debug("Shutting down backends")

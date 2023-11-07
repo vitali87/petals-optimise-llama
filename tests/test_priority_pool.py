@@ -12,8 +12,7 @@ from petals.server.task_pool import PrioritizedTaskPool
 def _submit_tasks(runtime_ready, pools, results_valid):
     runtime_ready.wait()
 
-    futures = []
-    futures.append(pools[0].submit_task(torch.tensor([0]), priority=1))
+    futures = [pools[0].submit_task(torch.tensor([0]), priority=1)]
     futures.append(pools[0].submit_task(torch.tensor([1]), priority=1))
     time.sleep(0.01)
     futures.append(pools[1].submit_task(torch.tensor([2]), priority=1))

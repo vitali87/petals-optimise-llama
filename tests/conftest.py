@@ -36,8 +36,7 @@ def cleanup_children():
 
     gc.collect()  # Call .__del__() for removed objects
 
-    children = psutil.Process().children(recursive=True)
-    if children:
+    if children := psutil.Process().children(recursive=True):
         logger.info(f"Cleaning up {len(children)} leftover child processes")
         for child in children:
             with suppress(psutil.NoSuchProcess):

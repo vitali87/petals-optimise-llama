@@ -265,7 +265,12 @@ class TransformerConnectionHandler(ConnectionHandler):
                     pushed = metadata.get("pushed")
                     if pushed:
                         n_pushes += 1
-                        self._log_request("rpc_inference.push", requested_uids, context, debug=f"session received push")
+                        self._log_request(
+                            "rpc_inference.push",
+                            requested_uids,
+                            context,
+                            debug="session received push",
+                        )
 
                     if step_id is None or step_id not in processed_step_ids:
                         yield request, metadata
@@ -422,7 +427,9 @@ class TransformerConnectionHandler(ConnectionHandler):
             assert isinstance(metadata["output_compression"], (list, tuple)), "output_compression must be a tuple/list"
             output_compression = tuple(metadata["output_compression"])
             assert all(isinstance(c, int) for c in output_compression), "output_compression must contain integers"
-            assert len(output_compression) == 1, f"output_compression tuple should have 1 element"
+            assert (
+                len(output_compression) == 1
+            ), "output_compression tuple should have 1 element"
         else:
             output_compression = tuple(tensor.compression for tensor in outputs_schema)
 
@@ -501,7 +508,7 @@ class TransformerConnectionHandler(ConnectionHandler):
     ) -> Sequence[runtime_pb2.Tensor]:
         """Serialize backward gradients w.r.t. inputs using either default schema or custom user-specified schema"""
         # Modify grad_inputs_schema to support grad_prompts
-        assert len(requested_backends[0].args_schema) == 1 and len(grads) in (1, 2)  # TODO generalize
+        assert len(requested_backends[0].args_schema) == 1 and len(grads) in {1, 2}
         flat_grads_schema = tuple(
             nested_flatten((requested_backends[0].args_schema * len(grads), requested_backends[0].kwargs_schema))
         )  # TODO generalize
@@ -562,7 +569,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         else:
             friendly_uids = "n/a"
 
-        friendly_remote_id = "..." + str(context.remote_id)[-6:]
+        friendly_remote_id = f"...{str(context.remote_id)[-6:]}"
 
         message = f"{method}(blocks={friendly_uids}, remote_peer={friendly_remote_id})"
         if warning is not None:
@@ -584,8 +591,7 @@ class TransformerConnectionHandler(ConnectionHandler):
 
         if request.uid:
             block_info = self.module_backends[request.uid].get_info()
-            common_keys = set(result.keys()) & set(block_info.keys())
-            if common_keys:
+            if common_keys := set(result.keys()) & set(block_info.keys()):
                 raise RuntimeError(f"The block's rpc_info has keys reserved for the server's rpc_info: {common_keys}")
             result.update(block_info)
 

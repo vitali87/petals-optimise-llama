@@ -180,7 +180,7 @@ async def iterate_rpc_inference(
             prompts = [p.squeeze(0) for p in prompts.to(requested_backends[0].dtype).split(1, dim=0)]
             prompts = [prompt if not is_dummy(prompt) else None for prompt in prompts]
 
-        if not (len(requested_backends) == len(prompts)):
+        if len(requested_backends) != len(prompts):
             raise ValueError(f"Received {len(prompts)} prompts for {len(requested_backends)} backends")
 
         if prefix_length + length_increment > max_length:
@@ -202,7 +202,7 @@ async def iterate_rpc_inference(
         # A client may pass a tensor with 0 tokens. This is a special case that occurs, e.g.
         # when user wants to pre-allocate cache or check that server *can* allocate that cache.
         if hidden_states.numel() > 0:
-            assert hidden_states.ndim == 3, f"hidden states must be a single 3d tensor"
+            assert hidden_states.ndim == 3, "hidden states must be a single 3d tensor"
             if can_merge_pools:
                 inference_infos = tuple(
                     InferenceMetadata(uid, prefix_length, tuple(handles), active_adapter)

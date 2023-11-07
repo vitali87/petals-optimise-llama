@@ -188,8 +188,7 @@ def main():
 
     args["startup_timeout"] = args.pop("daemon_startup_timeout")
 
-    file_limit = args.pop("increase_file_limit")
-    if file_limit:
+    if file_limit := args.pop("increase_file_limit"):
         limits.logger.setLevel(logging.WARNING)
         limits.increase_file_limit(file_limit, file_limit)
 

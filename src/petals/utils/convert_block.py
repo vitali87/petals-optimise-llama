@@ -78,7 +78,7 @@ def quantize_module(model: nn.Module, *, quant_type: QuantType) -> nn.Module:
     import bitsandbytes as bnb
 
     for n, module in model.named_children():
-        if len(list(module.children())) > 0:
+        if list(module.children()):
             quantize_module(module, quant_type=quant_type)
 
         if isinstance(module, torch.nn.Linear) and n not in ["lm_head", "score"]:
@@ -136,7 +136,7 @@ def make_tensor_parallel(
 
 
 def check_device_balance(devices: Sequence[torch.device]):
-    if not all(device.type == "cuda" for device in devices):
+    if any(device.type != "cuda" for device in devices):
         logger.warning("Running tensor parallelism on non-GPU devices; proceed at your own risk")
         return
     unique_device_capabilities = set(map(torch.cuda.get_device_capability, devices))

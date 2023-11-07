@@ -219,11 +219,7 @@ class OptimizedFalconAttention(FalconAttention):
             value_layer = torch.cat((past_value, value_layer), dim=1)
 
         _, kv_length, _ = key_layer.shape
-        if use_cache:
-            present = (key_layer, value_layer)
-        else:
-            present = None
-
+        present = (key_layer, value_layer) if use_cache else None
         query_layer_ = query_layer.reshape(batch_size, self.num_heads, -1, self.head_dim)
         key_layer_ = key_layer.reshape(batch_size, num_kv_heads, -1, self.head_dim)
         value_layer_ = value_layer.reshape(batch_size, num_kv_heads, -1, self.head_dim)
@@ -251,7 +247,7 @@ class OptimizedFalconAttention(FalconAttention):
             # cast attention scores to fp32, compute scaled softmax and cast back to initial dtype - [batch_size, num_heads, q_length, kv_length]
             input_dtype = attention_scores.dtype
             # `float16` has a minimum value of -65504.0, whereas `bfloat16` and `float32` have a minimum value of `-3.4e+38`
-            if input_dtype == torch.float16 or input_dtype == torch.bfloat16:
+            if input_dtype in [torch.float16, torch.bfloat16]:
                 attention_scores = attention_scores.to(torch.float32)
             # Matt (HF) note: We could possibly use F.scaled_dot_product_attention here too, by
             # adding (alibi * self.inv_norm_factor) to attention_mask_float. I think this would be mathematically
@@ -387,12 +383,7 @@ class OptimizedFalconDecoderLayer(FalconDecoderLayer):
 
         output = dropout_add(mlp_output, residual, self.config.hidden_dropout, training=self.training)
 
-        if use_cache:
-            outputs = (output,) + outputs
-        else:
-            outputs = (output,) + outputs[1:]
-
-        return outputs  # hidden_states, present, attentions
+        return (output,) + outputs if use_cache else (output,) + outputs[1:]
 
 
 class WrappedFalconBlock(OptimizedFalconDecoderLayer):
@@ -476,5 +467,4 @@ class WrappedFalconBlock(OptimizedFalconDecoderLayer):
 
         state = state.view(batch_size, self.config.num_kv_heads, self.config.num_key_value_groups, seq_len, head_dim)
         state = state[:, :, 0]
-        state = state.view(batch_size * self.config.num_kv_heads, seq_len, head_dim)
-        return state
+        return state.view(batch_size * self.config.num_kv_heads, seq_len, head_dim)

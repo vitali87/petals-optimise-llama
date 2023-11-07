@@ -15,6 +15,4 @@ class TaskPrioritizerBase(ABC):
 class DummyTaskPrioritizer(TaskPrioritizerBase):
     def prioritize(self, *input: torch.Tensor, points: float = 0.0, **kwargs) -> float:
         # Inference steps go first since they are more latency-sensitive
-        if kwargs.get("type") == "inference":
-            return 1.0
-        return 2.0  # Forward, backward
+        return 1.0 if kwargs.get("type") == "inference" else 2.0
